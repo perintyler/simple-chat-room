@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      body{
+        background-color: #FF7256;
+      }
+      div.nonChatWrapper {
+        background:white;
+        font:15px/20px Helvetica;
+	  height:800px;
+	  border-top-left-radius: 29px;
+	  border-top-right-radius: 29px;
+	  border-style: solid;
+	  border-width: 2px;
+	  border-bottom: none;
+      }
+      div.log{
+        background-color:#F1F1F1;
+        font:18px/18px Helvetica;
+        text-align: center;
+        vertical-align: center;
+        color: black;
+        float: center;
+        padding-bottom:100%;
+	  border-style:solid;
+	  border-width:2px;
+	  border-top:none;
+
+      }
+      div.info{
+          color: black;
+      }
+
+	div.title-container{
+		height:50px;
+		border:solid;
+		border-width: 1px;
+		border-style:solid;
+		color: black;
+		font:50px/50px sans-serif;
+		text-align: center;
+		margin-bottom:3%;
+		border-left:none;
+		border-top:none;
+		border-right:none;
+	}
+
+
+
+	div.messaging-buttons {
+		display:inline-block;
+		width:30%;
+		margin-right:0%;
+		border:inset;;
+		padding:20px;
+	}
+	div.room-buttons {
+		padding:20px;
+		width:30%;
+		display:inline-block;
+		margin-left:13%;
+		margin-right:10%;
+		border:inset;
+	}
+
+	div.messaging-buttons {
+		width:30%;
+		display:inline-block;
+	}
+
+	#message_input {
+		width:310px;
+	}
+
+	#kick_user {
+		width:171px;
+	}
+
+	#ban_user {
+		width:165px;
+	}
+
+	#whisper_user {
+		width:175px;
+	}
+
+	#whisper_message {
+		width:110px;
+	}
+
+	#room_name {
+		width:269px;
+	}
+
+	#room_name2 {
+		width:282px;
+	}
+
+	#privateRoom2 {
+		width:277px;
+	}
+
+	#privateRoom {
+		width:264px;
+	}
+
+	#message_client{
+		padding-top:20px;
+		margin-bottom:20px;
+	}
+
+
+      </style>
+</head>
+<script>
+    var socketio = io.connect();
+
+    socketio.on('connect', function(){
+      name = prompt("Please enter a valid username");
+      socketio.emit('newUser', name);
+    })
+    socketio.on("message_to_client",function(data) {
+       //Append an HR thematic break and the escaped HTML of the new message
+       document.getElementById("chatlog").appendChild(document.createElement("hr"));
+       document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+    });
+    socketio.on("message_to_client_with_image",function(data, image) {
+       //Append an HR thematic break and the escaped HTML of the new message
+       document.getElementById("chatlog").appendChild(document.createElement("hr"));
+       var img = document.createElement("img");
+       img.src = image;
+       document.getElementById("chatlog").appendChild(img);
+       document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+    });
+
+    socketio.on("alertRoom", function(data){
+      console.log(data);
+      var message = data['message'];
+      var mess = document.createElement("li");
+      mess.innerHTML = message;
+      document.getElementById("table4").appendChild(mess);
+    });
+
+    socketio.on("displayRooms", function(data){
+      console.log("Hello");
+      document.getElementById("table1").innerHTML = "Available Rooms: "
+      console.log(data);
+      for (var key in data){
+        var mess = document.createElement("li");
+        mess.innerHTML = key;
+        document.getElementById("table1").appendChild(mess);
+      }
+    });
+    socketio.on("displayPrivateRooms", function(data){
+      // console.log("Hello");
+      document.getElementById("table5").innerHTML = "Available Private Rooms: "
+      console.log(data);
+      for (var key in data){
+        var mess = document.createElement("li");
+        mess.innerHTML = key;
+        document.getElementById("table5").appendChild(mess);
+      }
+    });
+
+    socketio.on("currentRoom", function(data){
+      console.log("HI");
+      document.getElementById("table2").innerHTML = "Current Room: ";
+      var mess = document.createElement("li");
+      mess.innerHTML = data;
+      document.getElementById("table2").appendChild(mess);
+    });
+
+    socketio.on("usersOnline", function(data) {
+      document.getElementById("table3").innerHTML = "Current Users Online:";
+      for (var key in data){
+        var mess = document.createElement("li");
+        mess.innerHTML = key;
+        document.getElementById("table3").appendChild(mess);
+      }
+
+    });
+    socketio.on("usersInRoom", function(data, curRoom) {
+      document.getElementById("table7").innerHTML = "Current Users In" + curRoom;
+      for (var key in data){
+        console.log(key);
+        console.log(data);
+        console.log(data[key] + " I GOT KEYSSS");
+        if (data[key] === curRoom){
+          var mess = document.createElement("li");
+          mess.innerHTML = key;
+          document.getElementById("table7").appendChild(mess);
+        }
+      }
+    });
+
+    function kickUser(){
+      var user = document.getElementById("kick_user").value;
+      socketio.emit('kickServer', user);
+      document.getElementById("kick_user").value = "";
+    }
+    function banUser(){
+      var user = document.getElementById("ban_user").value;
+      socketio.emit('banServer', user);
+      document.getElementById("ban_user").value = "";
+    }
+
+    socketio.on("helperKick", function(user){
+      if (user === name){
+        socketio.emit('serverHelperKick');
+      }
+    });
+    socketio.on("helperBan", function(user){
+      if (user === name){
+        socketio.emit('serverHelperBan');
+      }
+    });
+
+    function privateMessage(){
+      private_message = document.getElementById("private_message").value;
+      recipient = document.getElementById("private_user").value;
+      socketio.emit('priv_mess', recipient, private_message);
+      document.getElementById("private_user").value = "";
+      document.getElementById("private_message").value = "";
+
+    }
+
+    function makePublicRoom(){
+       var input_room = document.getElementById("room_name").value;
+       socketio.emit('createRoom', input_room);
+       document.getElementById("room_name").value ="";
+      }
+
+    function createPrivateRoom(){
+       var input_room = document.getElementById("privateRoom").value;
+       var pw = prompt("Please enter your desired password for the room");
+       socketio.emit('createPrivateRoom', input_room, pw);
+       document.getElementById("privateRoom").value ="";
+      }
+
+
+    function sendMessage(){
+       var msg = document.getElementById("message_input").value;
+       socketio.emit("message_to_server", {message:msg});
+       document.getElementById("message_input").value = "";
+    }
+
+    function enterRoom(){
+      console.log('testEnterRoom');
+      var input_room = document.getElementById("room_name2").value;
+      console.log(input_room);
+      socketio.emit('joinPublic', input_room);
+      document.getElementById("room_name2").value ="";
+     }
+
+    function enterPrivateRoom(){
+      console.log('testEnterPrivateRoom');
+      var input_room = document.getElementById("privateRoom2").value;
+      var pw = prompt("Please enter the password for " + input_room);
+      console.log(input_room);
+      socketio.emit('joinPrivate', input_room, pw);
+      document.getElementById("room_name2").value ="";
+     }
+
+
+    function isURLImage(uri) {
+    //make sure we remove any nasty GET params
+    uri = uri.split('?')[0];
+    //moving on now
+    var parts = uri.split('.');
+    var extension = parts[parts.length-1];
+    var imageTypes = ['jpg','jpeg','tiff','png','gif','bmp']
+    if(imageTypes.indexOf(extension) !== -1) {
+        return true;
+    }
+    else return false;
+}
+
+
+
+</script>
+
+<body>
+  <div class="nonChatWrapper">
+    <div class="title-container">
+    	Welcome to the chat room
+    </div>
+
+    <div class="room-buttons">
+	    <button onclick="makePublicRoom()">Create public chatroom</button><input type="text" id="room_name" /><br>
+	    <button onclick="enterRoom()">Join public chatroom</button><input type="text" id="room_name2" /><br>
+	    <button onclick="enterPrivateRoom()">Join private chatroom</button><input type="text" id="privateRoom2" /><br>
+	    <button onclick="createPrivateRoom()">Create private chatroom</button><input type="text" id="privateRoom" />
+    </div>
+
+    <div class="messaging-buttons">
+		<button onclick="sendMessage()" id="send_message">send message</button><input type="text" id="message_input" /><br>
+		<button onclick="kickUser()">Enter name of user you would like to kick</button><input type="text" id="kick_user"/><br>
+		<button onclick="banUser()">Eneter Name of user you would like to ban</button><input type="text" id="ban_user" /><br>
+		<button onclick="whisper()">Private Message</button>
+		<input type="text" id="whisper_message" placeholder= "private message"/>
+	    	<input type="text" id="whisper_user" placeholder= "to user"/>
+    </div>
+
+
+    <div id="availableRooms" class="info">
+        <ul id="table1">
+        </ul>
+    </div>
+    <br>
+    <div id="currentRoom" class="info">
+        <ul id="table2">
+        </ul>
+    </div>
+    <br>
+    <div id="currentUsers" class="info">
+        <ul id="table3">
+        </ul>
+    </div>
+    <br>
+    <div id="userActivity" class="info">
+        <ul id="table4">
+        </ul>
+    </div>
+    <br>
+    <div id="privateRoomAvailable" class="info">
+        <ul id="table5">
+        </ul>
+    </div>
+    <br>
+    <div id="privateRoomPw" class="info">
+        <ul id="table6">
+        </ul>
+    </div>
+  </br>
+    <div id="usersInRoom" class="info">
+        <ul id="table7">
+        </ul>
+    </div>
+    <br>
+
+  </div>
+
+    <div id="chatlog" class="log"></div>
+</body>
+
+<script>
+document.getElementById("message_input")
+    .addEventListener("keyup", function(event) {
+    event.preventDefault();
+    if (event.keyCode == 13) {
+        document.getElementById("send_message").click();
+    }
+});
+</script>
+
+</html>
